@@ -16,10 +16,13 @@
   "scripts": {
     "dev": "tsx --watch src/index.ts",
     "dev:debug": "tsx --inspect --watch src/index.ts",
+    "dev:livekit": "tsx --watch src/livekit/server.ts",
     "build": "tsc",
     "build:clean": "pnpm clean && pnpm build",
+    "build:livekit": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "start:prod": "NODE_ENV=production node dist/index.js",
+    "start:livekit": "node dist/livekit/server.js",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
     "lint": "eslint src/**/*.ts",
@@ -39,7 +42,9 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/dotenv": "^8.2.3",
+    "@types/express": "^5.0.3",
     "@types/node": "^24.2.1",
     "@typescript-eslint/eslint-plugin": "^8.39.1",
     "@typescript-eslint/parser": "^8.39.1",
@@ -51,6 +56,9 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "dotenv": "^17.2.1"
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "livekit-server-sdk": "^2.13.2"
   }
 }
