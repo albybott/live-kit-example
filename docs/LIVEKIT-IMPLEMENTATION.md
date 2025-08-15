@@ -16,6 +16,7 @@ The LiveKit implementation provides a token server that issues JWT tokens for Li
   - `POST /api/token` - Token generation endpoint
 - **Integrated Web Interface**: HTML page served directly from the LiveKit server
 - **LiveKit Client**: Full-featured client that actually connects to rooms
+- **Real-time Chat System**: Messaging between participants using LiveKit data channels
 
 ## Files Structure
 
@@ -233,3 +234,40 @@ Once connected, your LiveKit dashboard will show:
 - ✅ **Total rooms**: > 0
 - ✅ **Active sessions** with participant details
 - ✅ **Real-time participant tracking**
+
+## Real-time Chat Features
+
+The LiveKit client now includes a comprehensive chat system that demonstrates LiveKit's data channel capabilities:
+
+### **Chat Capabilities**
+
+- **Real-time messaging** between participants in the same room
+- **Typing indicators** showing when someone is typing
+- **System messages** for participant join/leave events
+- **Message history** with timestamps and sender information
+- **Beautiful chat UI** with modern design, gradients, and animations
+- **Enhanced input styling** with focus states and hover effects
+- **Smooth animations** for message appearance and interactions
+
+### **How It Works**
+
+1. **Data Channels**: Uses LiveKit's data channels for real-time communication
+2. **Message Types**: Supports chat messages and typing indicators
+3. **Auto-scroll**: Chat automatically scrolls to show new messages
+4. **Enter Key**: Press Enter to send messages quickly
+5. **Participant Events**: Automatic system messages for room events
+
+### **Testing the Chat**
+
+1. **Open multiple browser tabs** with the client page
+2. **Join the same room** with different participant names
+3. **Send messages** between participants
+4. **See typing indicators** in real-time
+5. **Watch system messages** for join/leave events
+
+### **Technical Implementation**
+
+- **Data Publishing**: `room.localParticipant.publishData()`
+- **Data Reception**: `RoomEvent.DataReceived` event handler
+- **Message Format**: JSON with type, message, sender, and timestamp
+- **Topics**: Separate topics for chat messages and typing indicators
