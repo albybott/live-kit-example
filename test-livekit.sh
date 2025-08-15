@@ -21,6 +21,11 @@ curl -s -X POST http://localhost:3001/api/token \
 
 echo -e "\n✅ LiveKit tests completed!"
 echo -e "\n📱 To test the web interface:"
-echo "   - Open http://localhost:3001/ in your browser"
+echo "   - Token Generator: http://localhost:3001/"
+echo "   - LiveKit Client: http://localhost:3001/client"
 echo "   - Or use the curl commands above"
 echo -e "\n🚀 LiveKit server is running on http://localhost:3001"
+echo -e "\n💡 To see participants in your LiveKit dashboard:"
+echo "   1. Open http://localhost:3001/client"
+echo "   2. Join a room with any name"
+echo "   3. Check your LiveKit Cloud dashboard"

@@ -32,6 +32,18 @@ app.get("/", async (_req: Request, res: Response) => {
   }
 });
 
+// Serve LiveKit client page
+app.get("/client", async (_req: Request, res: Response) => {
+  try {
+    const htmlPath = join(__dirname, "../../public/livekit-client.html");
+    const htmlContent = await readFile(htmlPath, "utf-8");
+    res.setHeader("Content-Type", "text/html");
+    res.send(htmlContent);
+  } catch (error) {
+    res.status(500).send("<h1>Error loading LiveKit client</h1>");
+  }
+});
+
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", message: "LiveKit Token Server is running" });
 });
@@ -93,6 +105,7 @@ app.listen(port, () => {
   console.log(`🚀 LiveKit Token Server listening on http://localhost:${port}`);
   console.log(`📊 Health: http://localhost:${port}/health`);
   console.log(`🌐 Web Interface: http://localhost:${port}/`);
+  console.log(`🎥 LiveKit Client: http://localhost:${port}/client`);
   /* eslint-enable no-console */
 });
 

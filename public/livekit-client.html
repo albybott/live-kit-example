@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveKit Client - Join Room</title>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .participants {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .participant {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .participant:last-child {
+            border-bottom: none;
+        }
+        .participant-name {
+            font-weight: 600;
+            margin-right: 15px;
+        }
+        .participant-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .controls button {
+            flex: 1;
+        }
+        .controls button.leave {
+            background: #dc3545;
+        }
+        .controls button.leave:hover {
+            background: #c82333;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 LiveKit Room Client</h1>
+        
+        <div id="status" class="status disconnected">
+            Status: Disconnected
+        </div>
+
+        <div id="libraryStatus" style="display: none; text-align: center; margin-bottom: 20px;">
+            <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 6px;">
+                <strong>Library Loading:</strong> <span id="libraryStatusText">Checking...</span>
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label for="roomName">Room Name:</label>
+            <input type="text" id="roomName" placeholder="e.g., test-room-123" value="test-room-123">
+        </div>
+
+        <div class="form-group">
+            <label for="participantName">Your Name:</label>
+            <input type="text" id="participantName" placeholder="e.g., Alice" value="Alice">
+        </div>
+
+        <button id="joinRoom" onclick="joinRoom()">Join Room</button>
+        <button id="leaveRoom" onclick="leaveRoom()" disabled class="leave">Leave Room</button>
+        <button id="refreshLibrary" onclick="refreshLibrary()" style="background: #6c757d;">Refresh Library</button>
+
+        <div id="participants" class="participants" style="display: none;">
+            <h3>Participants in Room</h3>
+            <div id="participantsList"></div>
+        </div>
+
+        <div id="log" class="log" style="display: none;">
+            <h3>Connection Log</h3>
+            <div id="logContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let room;
+        let participants = new Map();
+
+        // Check if LiveKit library is loaded
+        function checkLiveKitLoaded() {
+            if (typeof window.LivekitClient === 'undefined') {
+                log('Error: LiveKit library not loaded. Trying alternative CDN...');
+                updateLibraryStatus('Primary CDN failed, trying alternative...', true);
+                loadAlternativeLiveKit();
+                return false;
+            }
+            log('LiveKit library loaded successfully');
+            updateLibraryStatus('Library loaded successfully!', false);
+            updateStatus('disconnected', 'Ready to connect - LiveKit library loaded');
+            return true;
+        }
+
+        function loadAlternativeLiveKit() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js';
+            script.onload = () => {
+                log('Alternative LiveKit library loaded');
+                if (typeof window.LivekitClient !== 'undefined') {
+                    log('LiveKit library is now available');
+                    updateLibraryStatus('Library loaded successfully!', false);
+                    updateStatus('disconnected', 'Ready to connect - LiveKit library loaded');
+                }
+            };
+            script.onerror = () => {
+                log('Failed to load LiveKit library from alternative CDN');
+                updateLibraryStatus('Failed to load library. Try refreshing.', true);
+                updateStatus('disconnected', 'Failed to load LiveKit library. Please refresh the page.');
+            };
+            document.head.appendChild(script);
+        }
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const logContent = document.getElementById('logContent');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.style.display = 'block';
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function updateStatus(status, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        function updateLibraryStatus(message, show = true) {
+            const libraryStatusDiv = document.getElementById('libraryStatus');
+            const libraryStatusText = document.getElementById('libraryStatusText');
+            
+            if (show) {
+                libraryStatusDiv.style.display = 'block';
+                libraryStatusText.textContent = message;
+            } else {
+                libraryStatusDiv.style.display = 'none';
+            }
+        }
+
+        function refreshLibrary() {
+            log('Manually refreshing LiveKit library...');
+            updateLibraryStatus('Refreshing library...', true);
+            
+            // Remove existing script tags
+            const existingScripts = document.querySelectorAll('script[src*="livekit-client"]');
+            existingScripts.forEach(script => script.remove());
+            
+            // Reset status
+            updateStatus('disconnected', 'Refreshing LiveKit library...');
+            
+            // Try loading again
+            setTimeout(() => {
+                loadAlternativeLiveKit();
+            }, 500);
+        }
+
+        function updateParticipants() {
+            const participantsDiv = document.getElementById('participants');
+            const participantsList = document.getElementById('participantsList');
+            
+            if (participants.size === 0) {
+                participantsList.innerHTML = '<p>No participants in room</p>';
+            } else {
+                participantsList.innerHTML = '';
+                participants.forEach((participant, sid) => {
+                    const participantDiv = document.createElement('div');
+                    participantDiv.className = 'participant';
+                    participantDiv.innerHTML = `
+                        <span class="participant-name">${participant.identity}</span>
+                        <span class="participant-status status-online">Online</span>
+                    `;
+                    participantsList.appendChild(participantDiv);
+                });
+            }
+            participantsDiv.style.display = 'block';
+        }
+
+        async function joinRoom() {
+            const roomName = document.getElementById('roomName').value.trim();
+            const participantName = document.getElementById('participantName').value.trim();
+
+            if (!roomName || !participantName) {
+                alert('Please fill in both room name and participant name');
+                return;
+            }
+
+            // Check if LiveKit is loaded
+            if (!checkLiveKitLoaded()) {
+                updateStatus('disconnected', 'LiveKit library not loaded. Please refresh the page.');
+                return;
+            }
+
+            const joinButton = document.getElementById('joinRoom');
+            const leaveButton = document.getElementById('leaveRoom');
+            
+            joinButton.disabled = true;
+            joinButton.textContent = 'Joining...';
+            updateStatus('connecting', 'Connecting to room...');
+
+            try {
+                // Get token from our server
+                const response = await fetch(`http://localhost:3001/api/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        roomName,
+                        participantName
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get token');
+                }
+
+                const data = await response.json();
+                log(`Token received for room: ${roomName}`);
+
+                // Connect to LiveKit room
+                room = new window.LivekitClient.Room();
+                
+                room.on(window.LivekitClient.RoomEvent.ParticipantConnected, (participant) => {
+                    log(`Participant joined: ${participant.identity}`);
+                    participants.set(participant.sid, participant);
+                    updateParticipants();
+                });
+
+                room.on(window.LivekitClient.RoomEvent.ParticipantDisconnected, (participant) => {
+                    log(`Participant left: ${participant.identity}`);
+                    participants.delete(participant.sid);
+                    updateParticipants();
+                });
+
+                room.on(window.LivekitClient.RoomEvent.Connected, () => {
+                    log('Successfully connected to room');
+                    updateStatus('connected', `Connected to room: ${roomName}`);
+                    joinButton.disabled = true;
+                    leaveButton.disabled = false;
+                    
+                    // Add yourself to participants list
+                    participants.set(room.localParticipant.sid, room.localParticipant);
+                    updateParticipants();
+                });
+
+                room.on(window.LivekitClient.RoomEvent.Disconnected, () => {
+                    log('Disconnected from room');
+                    updateStatus('disconnected', 'Disconnected from room');
+                    joinButton.disabled = false;
+                    leaveButton.disabled = true;
+                    participants.clear();
+                    updateParticipants();
+                });
+
+                // Connect to the room
+                await room.connect(data.serverUrl, data.token);
+                log(`Connecting to room: ${roomName}`);
+
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                updateStatus('disconnected', `Connection failed: ${error.message}`);
+                joinButton.disabled = false;
+                joinButton.textContent = 'Join Room';
+            }
+        }
+
+        async function leaveRoom() {
+            if (room) {
+                await room.disconnect();
+                log('Left room');
+            }
+        }
+
+        // Auto-refresh participants list
+        setInterval(() => {
+            if (room && room.connectionState === window.LivekitClient.ConnectionState.Connected) {
+                updateParticipants();
+            }
+        }, 2000);
+
+        // Check LiveKit library on page load
+        window.addEventListener('load', () => {
+            // Initial check after a short delay
+            setTimeout(() => {
+                if (checkLiveKitLoaded()) {
+                    // Library is already loaded
+                    updateStatus('disconnected', 'Ready to connect - LiveKit library loaded');
+                } else {
+                    // Library is not loaded, wait for alternative loading
+                    updateStatus('disconnected', 'Loading LiveKit library...');
+                }
+            }, 1000);
+            
+            // Check again after a longer delay to catch alternative loading
+            setTimeout(() => {
+                if (typeof window.LivekitClient !== 'undefined') {
+                    updateStatus('disconnected', 'Ready to connect - LiveKit library loaded');
+                }
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

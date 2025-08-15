@@ -11,9 +11,11 @@ The LiveKit implementation provides a token server that issues JWT tokens for Li
 - **Token Server**: Express.js server that generates LiveKit JWT tokens
 - **API Endpoints**:
   - `GET /` - Web interface for testing
+  - `GET /client` - LiveKit client for joining rooms
   - `GET /health` - Health check endpoint
   - `POST /api/token` - Token generation endpoint
 - **Integrated Web Interface**: HTML page served directly from the LiveKit server
+- **LiveKit Client**: Full-featured client that actually connects to rooms
 
 ## Files Structure
 
@@ -22,7 +24,8 @@ src/
 ├── livekit/
 │   └── server.ts          # LiveKit token server with integrated web interface
 public/
-└── index.html             # Test page for the token server
+├── index.html             # Token generator test page
+└── livekit-client.html    # LiveKit client for joining rooms
 ```
 
 ## Configuration
@@ -133,6 +136,18 @@ Health check endpoint.
 - `express` - Web framework
 - `cors` - CORS middleware
 - `dotenv` - Environment variable loading
+- `livekit-client` - LiveKit client SDK (loaded via CDN: `https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js`)
+
+## Technical Notes
+
+### LiveKit Client Library
+
+The web client uses the official LiveKit client SDK loaded via CDN:
+
+- **CDN URL**: `https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js`
+- **Global Namespace**: `window.LivekitClient` (note the lowercase 'k')
+- **Format**: UMD (Universal Module Definition) for browser compatibility
+- **Version**: Latest stable (auto-updated)
 
 ## Security Notes
 
@@ -182,3 +197,39 @@ To extend this implementation:
 - [LiveKit Documentation](https://docs.livekit.io/)
 - [LiveKit Server SDK](https://docs.livekit.io/reference/server-sdk/)
 - [LiveKit Cloud](https://cloud.livekit.io/)
+
+## How to See Participants in LiveKit Dashboard
+
+**Important**: Just generating a token doesn't create an active session. To see participants in your LiveKit dashboard, you need to actually **join a room** using the token.
+
+### Option 1: Use the LiveKit Client (Recommended)
+
+1. **Open the LiveKit Client**: Navigate to `http://localhost:3001/client`
+2. **Enter Room Details**:
+   - Room Name: `test-room-123` (or any name)
+   - Your Name: `Alice` (or any name)
+3. **Click "Join Room"**: This will:
+   - Get a token from your server
+   - Connect to the LiveKit room
+   - Show you as an active participant
+4. **Check Your Dashboard**: You should now see:
+   - Active sessions in the LiveKit dashboard
+   - Participants count > 0
+   - Room activity
+
+### Option 2: Use LiveKit Client SDKs
+
+You can also use the generated tokens with:
+
+- **Web**: LiveKit React components
+- **Mobile**: LiveKit iOS/Android SDKs
+- **Desktop**: LiveKit Electron SDK
+
+### What You'll See in Dashboard
+
+Once connected, your LiveKit dashboard will show:
+
+- ✅ **Unique participants**: > 0
+- ✅ **Total rooms**: > 0
+- ✅ **Active sessions** with participant details
+- ✅ **Real-time participant tracking**
